@@ -1,0 +1,19 @@
+# Root ignores for the project-d monorepo.
+# NOTE: backend/ and frontend/ each keep their own .gitignore for
+# language-specific artifacts (target/, node_modules/, .next/, .env, etc.);
+# git applies those nested files automatically.
+
+# OS / editor cruft (anywhere in the tree)
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Claude local settings (keep any shared .claude/settings.json; drop local)
+**/.claude/settings.local.json
+
+# Defense-in-depth: never commit env/secret files from any subtree
+**/.env
+**/.env.*
+!**/.env.example

@@ -1,0 +1,158 @@
+# OPD Billing API — request collection.
+# Works with the VS Code "REST Client" extension and JetBrains HTTP Client.
+# Run "login" first; {{token}} is captured automatically from its response.
+
+@baseUrl = http://localhost:8080
+@v1 = {{baseUrl}}/api/v1
+@email = test@projectd.dev
+@password = S3cret!pass
+@token = {{login.response.body.$.access_token}}
+
+### Health
+GET {{baseUrl}}/health/ready
+
+### OpenAPI spec
+GET {{v1}}/openapi.yaml
+
+### Register
+POST {{v1}}/auth/register
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}", "given_name": "Test", "family_name": "User" }
+
+### Confirm (use the emailed code)
+POST {{v1}}/auth/confirm
+Content-Type: application/json
+
+{ "email": "{{email}}", "code": "123456" }
+
+### Login  (@name login)
+# @name login
+POST {{v1}}/auth/login
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}" }
+
+### Who am I
+GET {{v1}}/auth/me
+Authorization: Bearer {{token}}
+
+### Refresh  (username = your Cognito sub from /auth/me)
+POST {{v1}}/auth/refresh
+Content-Type: application/json
+
+{ "refresh_token": "{{login.response.body.$.refresh_token}}", "username": "PASTE_SUB" }
+
+### Logout (global sign-out)
+POST {{v1}}/auth/logout
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------ Doctors
+### Create doctor
+# @name createDoctor
+POST {{v1}}/doctors
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "first_name": "Meena", "last_name": "Iyer", "specialization": "General Medicine", "department": "OPD", "consultation_fee": "500.00" }
+
+### List doctors
+GET {{v1}}/doctors
+Authorization: Bearer {{token}}
+
+### ----------------------------------------------------------------- Patients
+### Create patient
+# @name createPatient
+POST {{v1}}/patients
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "first_name": "Asha", "last_name": "Rao", "gender": "female", "phone": "+919000000001", "email": "asha@example.com" }
+
+### List patients
+GET {{v1}}/patients?limit=50&offset=0
+Authorization: Bearer {{token}}
+
+### Get patient
+GET {{v1}}/patients/{{createPatient.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------- Appointments
+### Book appointment
+# @name createAppointment
+POST {{v1}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "patient_id": "{{createPatient.response.body.$.id}}", "doctor_id": "{{createDoctor.response.body.$.id}}", "scheduled_at": "2026-12-01T10:00:00Z", "reason": "Fever and cough" }
+
+### List appointments (filter by patient)
+GET {{v1}}/appointments?patient_id={{createPatient.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+### Cancel appointment
+POST {{v1}}/appointments/{{createAppointment.response.body.$.id}}/cancel
+Authorization: Bearer {{token}}
+
+### ------------------------------------------------------------------ Billing
+### Create invoice (issued)
+# @name createInvoice
+POST {{v1}}/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patient_id": "{{createPatient.response.body.$.id}}",
+  "appointment_id": "{{createAppointment.response.body.$.id}}",
+  "issue_now": true,
+  "tax": "40.00",
+  "items": [
+    { "description": "Consultation", "quantity": "1", "unit_price": "500.00" },
+    { "description": "CBC Test", "quantity": "1", "unit_price": "300.00" }
+  ]
+}
+
+### Get invoice detail
+GET {{v1}}/invoices/{{createInvoice.response.body.$.id}}
+Authorization: Bearer {{token}}
+
+### Record payment
+POST {{v1}}/invoices/{{createInvoice.response.body.$.id}}/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "amount": "840.00", "method": "upi", "reference": "UPI-123" }
+
+### ------------------------------------------------------------------ Reports
+### Upload report (multipart)
+# @name uploadReport
+POST {{v1}}/reports
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----form
+
+------form
+Content-Disposition: form-data; name="patient_id"
+
+{{createPatient.response.body.$.id}}
+------form
+Content-Disposition: form-data; name="report_type"
+
+lab
+------form
+Content-Disposition: form-data; name="title"
+
+CBC Result
+------form
+Content-Disposition: form-data; name="file"; filename="cbc.txt"
+Content-Type: text/plain
+
+CBC: WBC 7.2, Hb 13.5
+------form--
+
+### Get presigned download URL
+GET {{v1}}/reports/{{uploadReport.response.body.$.id}}/download
+Authorization: Bearer {{token}}
+
+### List a patient's reports
+GET {{v1}}/patients/{{createPatient.response.body.$.id}}/reports
+Authorization: Bearer {{token}}

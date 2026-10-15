@@ -1,0 +1,30 @@
+# Build artifacts — 3.8 GB of host (wrong-arch) objects; never send to the daemon
+target/
+
+# Secrets / local env — must NOT be baked into the image
+.env
+.env.*
+!.env.example
+
+# VCS & CI
+.git/
+.gitignore
+.github/
+
+# Editor / OS cruft
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Docker / compose (not needed inside the build)
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Dev-only extras not required to compile the binary
+README.md
+docs/
+api.http
+scripts/

@@ -1,0 +1,37 @@
+# Local development stack. Postgres mirrors AWS RDS; in AWS you point
+# DATABASE_URL at the managed RDS instance instead of this container.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: opd_billing_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: opd_billing
+    ports:
+      # Host 5433 → container 5432 to avoid clashing with a native Postgres on 5432.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d opd_billing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: opd_billing_api
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override host so the API reaches the compose Postgres, not localhost.
+      DATABASE_URL: postgres://postgres:postgres@db:5432/opd_billing
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

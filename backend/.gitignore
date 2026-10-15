@@ -1,0 +1,25 @@
+/target
+**/*.rs.bk
+Cargo.lock.orig
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+
+# AWS / local creds
+.aws/
+
+# Local corporate CA cert(s) for the Docker build behind TLS-intercepting
+# proxies (e.g. Zscaler). Keep the dir via .gitkeep; never commit the certs.
+certs/*
+!certs/.gitkeep
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# sqlx offline cache (uncomment if you adopt `cargo sqlx prepare`)
+# .sqlx/
